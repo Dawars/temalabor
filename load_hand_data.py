@@ -1,5 +1,10 @@
+import cv2
+import keras
 import numpy as np
 import os
+from keras.preprocessing import image
+from matplotlib import pyplot as plt
+
 dataset_location = '/home/dawars/datasets/Hand/SyntheticHand/'
 
 
@@ -12,7 +17,7 @@ def load_data(datasets, genders, read_labels=False):
         for gender in genders:
             path = os.path.join(dataset_location, dataset, gender)
             for person in os.listdir(path):
-                if int(person) > 5:
+                if int(person) > 10:
                     continue  # reduce data
 
                 if read_labels:
@@ -40,9 +45,78 @@ def load_data(datasets, genders, read_labels=False):
     return out_urls, out_labels
 
 
+def preprocess_feature(img_urls):
+    """
+    Loads and normalizes/standardises images
+    :param img_urls:
+    :return:
+    """
+    list_of_imgs = []
+    for img in img_urls:
+        if not img.endswith(".png"):
+            continue
+
+        a = image.load_img(img, target_size=(224, 224))  # PIL image
+        # plt.imshow(a)
+        # print(a.shape)
+        if a is None:
+            print("Unable to read image", img)
+            continue
+        list_of_imgs.append(keras.preprocessing.image.img_to_array(a))  # convert to np array
+    train_data = np.array(list_of_imgs, )
+    return (train_data - 127) / 255
+
+
+# joints
+def preprocess_label(joints):
+    for joint in joints:
+        for i in range(0, len(joint), 2):
+            joint[i] = (joint[i] / 512) - 0.5
+            joint[i + 1] = (joint[i + 1] / 424) - 0.5
+    return np.array(joints)
+
+
+# joint output
+def parse_label(features):
+    for i in range(0, len(features), 2):
+        features[i] = (features[i] + 0.5) * 512
+        features[i + 1] = (features[i + 1] + 0.5) * 424
+    return features
+
+
 def shuffle_data(a, b):
     a = np.array(a)
     b = np.array(b)
     assert len(a) == len(b)
     p = np.random.permutation(len(a))
     return a[p], b[p]
+
+
+def load_image(url):
+    x = image.load_img(url, target_size=(224, 224))
+    x = np.expand_dims(x, axis=0)
+    return x
+
+
+def generate_batches(urls, labels):
+    batch_size = 64
+    i = 0
+    batch_img = []
+    batch_label = []
+    while 1:
+        urls, labels = shuffle_data(urls, labels)
+        for i in range(len(urls)):
+            url = urls[i]
+            label = labels[i]
+            img = load_image(url)
+            i += 1
+
+            batch_img.append(img)
+            batch_label.append(label)
+            if i >= batch_size:
+                i = 0
+
+                yield (batch_img, batch_label)
+
+                batch_img = []
+                batch_label = []
