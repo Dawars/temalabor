@@ -8,6 +8,9 @@ from matplotlib import pyplot as plt
 dataset_location = '/home/dawars/datasets/Hand/SyntheticHand/'
 
 
+# dataset_location = '/Users/dawars/projects/temalabor/SyntheticHand/'
+
+
 def load_data(datasets, genders, read_labels=False):
     out_labels = []
     out_urls = []
@@ -17,7 +20,7 @@ def load_data(datasets, genders, read_labels=False):
         for gender in genders:
             path = os.path.join(dataset_location, dataset, gender)
             for person in os.listdir(path):
-                if int(person) > 10:
+                if int(person) > 50:
                     continue  # reduce data
 
                 if read_labels:
@@ -56,13 +59,16 @@ def preprocess_feature(img_urls):
         if not img.endswith(".png"):
             continue
 
-        a = image.load_img(img, target_size=(224, 224))  # PIL image
+        a = cv2.imread(img)
+        a = cv2.resize(a, (224, 224))
+        # , target_size=(224, 224))  # PIL image
         # plt.imshow(a)
         # print(a.shape)
         if a is None:
             print("Unable to read image", img)
             continue
-        list_of_imgs.append(keras.preprocessing.image.img_to_array(a))  # convert to np array
+        # list_of_imgs.append(keras.preprocessing.image.img_to_array(a))  # convert to np array
+        list_of_imgs.append(a)
     train_data = np.array(list_of_imgs, )
     return (train_data - 127) / 255
 
@@ -78,10 +84,11 @@ def preprocess_label(joints):
 
 # joint output
 def parse_label(features):
+    out = []
     for i in range(0, len(features), 2):
-        features[i] = (features[i] + 0.5) * 512
-        features[i + 1] = (features[i + 1] + 0.5) * 424
-    return features
+        out.append((features[i] + 0.5) * 512)
+        out.append((features[i + 1] + 0.5) * 424)
+    return out
 
 
 def shuffle_data(a, b):

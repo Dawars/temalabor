@@ -9,21 +9,28 @@ test_X, test_Y = load_data(['Test'], ['male'], read_labels=True)
 test_X = preprocess_feature(test_X)
 test_Y = preprocess_label(test_Y)
 
-# load json and create model
-json_file = open('model.json', 'r')
-loaded_model_json = json_file.read()
-json_file.close()
-loaded_model = model_from_json(loaded_model_json, custom_objects={
-    'relu6': mobilenet.relu6,
-    'DepthwiseConv2D': mobilenet.DepthwiseConv2D})
-# load weights into new model
-loaded_model.load_weights("model.h5")
-print("Loaded model from disk")
+model_names = ['batch_32_epoch_50_data_10',
+               'batch_32_epoch_200_data_30_adam',
+               'batch_16_epoch_100_data_30_adam_0_1_random', ]
 
-# evaluate loaded model on test data
-loaded_model.compile(loss='mean_squared_error',
-                     optimizer=keras.optimizers.RMSprop(lr=2e-5),
-                     metrics=['acc'])
+for model_name in model_names:
+    # load json and create model
+    json_file = open(model_name + '.json', 'r')
+    loaded_model_json = json_file.read()
+    json_file.close()
+    loaded_model = model_from_json(loaded_model_json, custom_objects={
+        'relu6': mobilenet.relu6,
+        'DepthwiseConv2D': mobilenet.DepthwiseConv2D})
+    # load weights into new model
+    loaded_model.load_weights(model_name + ".h5")
 
-score = loaded_model.evaluate(test_X, test_Y)
-print("%s: %.2f%%" % (loaded_model.metrics_names[1], score[1] * 100))
+    # mobilenet
+    print("Loaded model from disk")
+
+    # evaluate loaded model on test data
+    loaded_model.compile(loss='mean_squared_error',
+                         optimizer=keras.optimizers.Adam(),
+                         metrics=['acc'])
+
+    score = loaded_model.evaluate(test_X, test_Y)
+    print(model_name + " %s: %.2f%%" % (loaded_model.metrics_names[1], score[1] * 100))
